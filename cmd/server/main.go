@@ -3,36 +3,59 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
+
+	"gopkg.in/robfig/cron.v3"
 )
 
 func main() {
-	http.HandleFunc("/refresh", refresh)
+	log.Println("Create new cron")
+	c := cron.New()
+	// every Sunday execute once
+	c.AddFunc("0 0 0 ? * 1", func(){
+		log.Println("cron job triggered")
+		if _, err := refresh(); err != nil {
+			log.Printf("%+v\n", err)
+			return
+		}
+		log.Println("cron job success")
+	})
+	c.Start()
 
+	http.HandleFunc("/trigger", trigger)
 	http.ListenAndServe(":8080", nil)
 }
 
-func refresh(w http.ResponseWriter, req *http.Request) {
-	//todo 1: git pull azurerm repo
+func trigger(w http.ResponseWriter, req *http.Request) {
+	output, err := refresh()
+	if err != nil {
+		fmt.Fprintf(w, "%+v\n", err)
+		return
+	}
+	fmt.Fprintf(w, "%s", output)
+}
+
+func refresh() (string, error){
+	//step 1: git pull azurerm repo
 	cmd := exec.CommandContext(context.Background(), "git", "pull")
 	cmd.Dir = os.Getenv("PROVIDER_REPO_PATH")
 
 	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(w, "%+v\n", err)
+		return "", err
 	}
 
-	//todo 2: execute extract
+	//step 2: execute extract
 	extractCmdPath := os.Getenv("EXTRACT_CMD_PATH")
 	cmd = exec.CommandContext(context.Background(), extractCmdPath, "./...")
 	cmd.Dir = os.Getenv("PROVIDER_REPO_PATH")
 
 	output, err := cmd.Output()
 	if err != nil {
-		fmt.Fprintf(w, "%+v\n", err)
+		return "", err
 	}
 
-	//todo 3: print output
-	fmt.Fprintf(w, "%s", string(output))
+	return string(output), nil
 }
