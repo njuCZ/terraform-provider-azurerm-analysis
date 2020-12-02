@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 
-	"gopkg.in/robfig/cron.v3"
+	"github.com/robfig/cron/v3"
 )
 
 var sem = semaphore.NewWeighted(1)
@@ -18,7 +18,7 @@ func main() {
 	log.Println("Create new cron")
 	c := cron.New()
 	// every Sunday execute once
-	c.AddFunc("0 0 0 ? * 1", func(){
+	c.AddFunc("0 0 0 ? * 1", func() {
 		log.Println("cron job triggered")
 		if _, err := OnlyOneRefresh(); err != nil {
 			log.Printf("%+v\n", err)
@@ -28,7 +28,7 @@ func main() {
 	})
 	c.Start()
 
-	http.HandleFunc("/trigger", func(w http.ResponseWriter, req *http.Request){
+	http.HandleFunc("/trigger", func(w http.ResponseWriter, req *http.Request) {
 		output, err := OnlyOneRefresh()
 		if err != nil {
 			fmt.Fprintf(w, "%+v\n", err)
@@ -47,7 +47,7 @@ func OnlyOneRefresh() (string, error) {
 	return refresh()
 }
 
-func refresh() (string, error){
+func refresh() (string, error) {
 	//step 1: git pull azurerm repo
 	cmd := exec.CommandContext(context.Background(), "git", "pull")
 	cmd.Dir = os.Getenv("PROVIDER_REPO_PATH")
