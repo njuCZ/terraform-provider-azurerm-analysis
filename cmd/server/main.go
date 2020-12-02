@@ -28,17 +28,15 @@ func main() {
 	})
 	c.Start()
 
-	http.HandleFunc("/trigger", trigger)
+	http.HandleFunc("/trigger", func(w http.ResponseWriter, req *http.Request){
+		output, err := OnlyOneRefresh()
+		if err != nil {
+			fmt.Fprintf(w, "%+v\n", err)
+			return
+		}
+		fmt.Fprintf(w, "%s", output)
+	})
 	http.ListenAndServe(":8080", nil)
-}
-
-func trigger(w http.ResponseWriter, req *http.Request) {
-	output, err := OnlyOneRefresh()
-	if err != nil {
-		fmt.Fprintf(w, "%+v\n", err)
-		return
-	}
-	fmt.Fprintf(w, "%s", output)
 }
 
 func OnlyOneRefresh() (string, error) {
