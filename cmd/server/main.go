@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"golang.org/x/sync/semaphore"
 	"log"
 	"net/http"
 	"os"
@@ -11,13 +12,15 @@ import (
 	"gopkg.in/robfig/cron.v3"
 )
 
+var sem = semaphore.NewWeighted(1)
+
 func main() {
 	log.Println("Create new cron")
 	c := cron.New()
 	// every Sunday execute once
 	c.AddFunc("0 0 0 ? * 1", func(){
 		log.Println("cron job triggered")
-		if _, err := refresh(); err != nil {
+		if _, err := OnlyOneRefresh(); err != nil {
 			log.Printf("%+v\n", err)
 			return
 		}
@@ -30,12 +33,20 @@ func main() {
 }
 
 func trigger(w http.ResponseWriter, req *http.Request) {
-	output, err := refresh()
+	output, err := OnlyOneRefresh()
 	if err != nil {
 		fmt.Fprintf(w, "%+v\n", err)
 		return
 	}
 	fmt.Fprintf(w, "%s", output)
+}
+
+func OnlyOneRefresh() (string, error) {
+	if !sem.TryAcquire(1) {
+		return "", fmt.Errorf("refreshing")
+	}
+	defer sem.Release(1)
+	return refresh()
 }
 
 func refresh() (string, error){
