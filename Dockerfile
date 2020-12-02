@@ -12,10 +12,10 @@ RUN set -ex && \
 FROM builder AS builder1
 RUN mkdir -p $GOPATH/src/github.com/terraform-providers && cd $GOPATH/src/github.com/terraform-providers && git clone --verbose -b master --single-branch https://github.com/terraform-providers/terraform-provider-azurerm.git
 RUN mkdir -p $GOPATH/src/github.com/njucz && cd $GOPATH/src/github.com/njucz && git clone --verbose -b master --single-branch https://github.com/njuCZ/terraform-provider-azurerm-analysis.git
-RUN cd $GOPATH/src/github.com/njucz/terraform-provider-azurerm-analysis && \
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o extract cmd/extract/main.go && mv extract $GOPATH/bin/ && \
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o analysis cmd/server/main.go && mv analysis $GOPATH/bin/
-#RUN cd $GOPATH/src/github.com/terraform-providers/terraform-provider-azurerm && extract ./... > /tmp/result.txt
+RUN cd $GOPATH/src/github.com/njucz/terraform-provider-azurerm-analysis && git pull && \
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o extract cmd/extract/main.go && \
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o analysis cmd/server/main.go && \
+        mv extract analysis $GOPATH/bin/
 
 FROM builder
 ENV GOFLAGS -mod=vendor
