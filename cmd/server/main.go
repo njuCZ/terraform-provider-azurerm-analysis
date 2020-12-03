@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"golang.org/x/sync/semaphore"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-
-	"github.com/robfig/cron/v3"
 )
 
 var sem = semaphore.NewWeighted(1)
@@ -18,6 +17,7 @@ func main() {
 	logFlags := log.LstdFlags | log.Lshortfile
 	log.SetFlags(logFlags)
 
+	log.Println("starting cron job")
 	c := cron.New()
 	// every Sunday execute once
 	c.AddFunc("0 0 0 ? * 1", func() {
@@ -29,8 +29,8 @@ func main() {
 		log.Println("cron job success")
 	})
 	c.Start()
-	log.Println("cron job is starting")
 
+	log.Println("starting http server")
 	http.HandleFunc("/trigger", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("http request triggered")
 		defer log.Println("http request end")
@@ -42,7 +42,6 @@ func main() {
 		fmt.Fprintf(w, "%s", output)
 	})
 	http.ListenAndServe(":8080", nil)
-	log.Println("http server is starting")
 }
 
 func OnlyOneRefresh() (string, error) {
