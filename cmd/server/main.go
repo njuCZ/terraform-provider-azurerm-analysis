@@ -15,7 +15,9 @@ import (
 var sem = semaphore.NewWeighted(1)
 
 func main() {
-	log.Println("Create new cron")
+	logFlags := log.LstdFlags | log.Lshortfile
+	log.SetFlags(logFlags)
+
 	c := cron.New()
 	// every Sunday execute once
 	c.AddFunc("0 0 0 ? * 1", func() {
@@ -27,8 +29,11 @@ func main() {
 		log.Println("cron job success")
 	})
 	c.Start()
+	log.Println("cron job is starting")
 
 	http.HandleFunc("/trigger", func(w http.ResponseWriter, req *http.Request) {
+		log.Println("http request triggered")
+		defer log.Println("http request end")
 		output, err := OnlyOneRefresh()
 		if err != nil {
 			fmt.Fprintf(w, "%+v\n", err)
@@ -37,6 +42,7 @@ func main() {
 		fmt.Fprintf(w, "%s", output)
 	})
 	http.ListenAndServe(":8080", nil)
+	log.Println("http server is starting")
 }
 
 func OnlyOneRefresh() (string, error) {

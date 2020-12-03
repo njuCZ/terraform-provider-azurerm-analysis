@@ -12,6 +12,9 @@ RUN set -ex && \
 FROM builder AS builder1
 RUN mkdir -p $GOPATH/src/github.com/terraform-providers && cd $GOPATH/src/github.com/terraform-providers && git clone --verbose -b master --single-branch https://github.com/terraform-providers/terraform-provider-azurerm.git
 RUN mkdir -p $GOPATH/src/github.com/njucz && cd $GOPATH/src/github.com/njucz && git clone --verbose -b master --single-branch https://github.com/njuCZ/terraform-provider-azurerm-analysis.git
+
+# avoid cache for following RUN command
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
 RUN cd $GOPATH/src/github.com/njucz/terraform-provider-azurerm-analysis && git pull && \
         GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o extract cmd/extract/main.go && \
         GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o analysis cmd/server/main.go && \
