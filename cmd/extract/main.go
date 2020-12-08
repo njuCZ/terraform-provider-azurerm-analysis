@@ -150,8 +150,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}
 					FuncName := strings.TrimSuffix(be.Name.Name, "Preparer")
 					if typeInvoke.FuncNames[FuncName] || typeInvoke.FuncNames[FuncName+"Complete"] {
-						if url, action := walk(be.Body.List); url != "" && action != "" {
-							fmt.Printf("%s %s\n", url, action)
+						if apiVersion, url, action := walk(be.Body.List); apiVersion != "" && url != "" && action != "" {
+							fmt.Printf("%s %s %s\n", apiVersion, url, action)
 						}
 					}
 					return true
@@ -163,7 +163,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	return nil, nil
 }
 
-func walk(body []ast.Stmt) (string, string) {
+func walk(body []ast.Stmt) (string, string, string) {
 	httpActionPlusPath := make([]string, 0, len(HttpActionMap)+1)
 	for k := range HttpActionMap {
 		httpActionPlusPath = append(httpActionPlusPath, k)
@@ -223,14 +223,14 @@ func walk(body []ast.Stmt) (string, string) {
 	_, ok := urlUsage[key]
 	urlUsageMutex.RUnlock()
 	if ok {
-		return "", ""
+		return "", "", ""
 	} else {
 		urlUsageMutex.Lock()
 		urlUsage[key] = struct{}{}
 		urlUsageMutex.Unlock()
 	}
 
-	return url, action
+	return apiVersion, url, action
 }
 
 func foundInList(arr []string, ele string) bool {

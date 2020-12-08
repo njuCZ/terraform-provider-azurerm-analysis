@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/robfig/cron/v3"
-	"golang.org/x/sync/semaphore"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+
+	"github.com/njucz/terraform-provider-azurerm-analysis/internal/sql"
+	"github.com/robfig/cron/v3"
+	"golang.org/x/sync/semaphore"
 )
 
 var sem = semaphore.NewWeighted(1)
@@ -71,5 +73,6 @@ func refresh() (string, error) {
 		return "", err
 	}
 
-	return string(output), nil
+	err = sql.Handle(string(output))
+	return string(output), err
 }
