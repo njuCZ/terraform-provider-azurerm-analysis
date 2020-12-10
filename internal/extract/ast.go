@@ -1,6 +1,7 @@
 package extract
 
 import (
+	"github.com/njucz/terraform-provider-azurerm-analysis/internal/common"
 	"go/ast"
 	"go/token"
 )
@@ -23,8 +24,8 @@ var UrlFuncName = map[string]struct{}{
 	"WithPath":           {},
 }
 
-func getEndpointInfoFromGoSdkFunction(funcBody []ast.Stmt) Endpoint {
-	var endpoint Endpoint
+func getEndpointInfoFromGoSdkFunction(funcBody []ast.Stmt) common.Endpoint {
+	var endpoint common.Endpoint
 	for _, stmt := range funcBody {
 		ast.Inspect(stmt, func(n ast.Node) bool {
 			if apiVersion, ok := checkAPIVersionAstNode(n); ok {

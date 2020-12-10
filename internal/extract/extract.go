@@ -2,6 +2,7 @@ package extract
 
 import (
 	"fmt"
+	"github.com/njucz/terraform-provider-azurerm-analysis/internal/common"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -18,17 +19,17 @@ import (
 const SDKPackagePrefix = "github.com/Azure/azure-sdk-for-go/services"
 
 type Extract struct {
-	endpointsMap map[Endpoint]struct{}
+	endpointsMap map[common.Endpoint]struct{}
 	mutex        sync.Mutex
 }
 
 func NewExtract() *Extract {
 	return &Extract{
-		endpointsMap: map[Endpoint]struct{}{},
+		endpointsMap: map[common.Endpoint]struct{}{},
 	}
 }
 
-func (e *Extract) AddEndpoint(endpoint Endpoint) bool {
+func (e *Extract) AddEndpoint(endpoint common.Endpoint) bool {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 	if _, ok := e.endpointsMap[endpoint]; !ok {
