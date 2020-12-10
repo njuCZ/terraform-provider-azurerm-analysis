@@ -7,8 +7,6 @@ import (
 
 const ApiVersionName = "APIVersion"
 
-var endpoints EndpointList
-
 var HttpActionMap = map[string]string{
 	"AsDelete":  "DELETE",
 	"AsGet":     "GET",
@@ -25,7 +23,7 @@ var UrlFuncName = map[string]struct{}{
 	"WithPath":           {},
 }
 
-func EndpointInfoFromGoSdkFunction(funcBody []ast.Stmt) *Endpoint {
+func getEndpointInfoFromGoSdkFunction(funcBody []ast.Stmt) Endpoint {
 	var endpoint Endpoint
 	for _, stmt := range funcBody {
 		ast.Inspect(stmt, func(n ast.Node) bool {
@@ -50,10 +48,7 @@ func EndpointInfoFromGoSdkFunction(funcBody []ast.Stmt) *Endpoint {
 		})
 	}
 
-	if endpoints.Add(endpoint) {
-		return &endpoint
-	}
-	return nil
+	return endpoint
 }
 
 // the source code format should be the following format:
