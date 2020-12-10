@@ -54,7 +54,7 @@ func ConstructEndpointList(multiLine string) ([]Endpoint, error) {
 	result := make([]Endpoint, len(lines))
 	for index, line := range lines {
 		endpoint, err := ConstructEndpoint(line)
-		if err == nil {
+		if err != nil {
 			return nil, err
 		}
 		if endpoint == nil {
