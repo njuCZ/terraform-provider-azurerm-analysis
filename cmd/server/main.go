@@ -22,7 +22,7 @@ func main() {
 	log.Println("starting cron job")
 	c := cron.New()
 	// every Sunday execute once
-	c.AddFunc("0 0 0 ? * 1", func() {
+	c.AddFunc("0 0 * * *", func() {
 		log.Println("cron job triggered")
 		if _, err := ser.OnlyOneRefresh(); err != nil {
 			log.Printf("%+v\n", err)
