@@ -12,34 +12,10 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 	"log"
 	"os"
-	"regexp"
 	"strings"
-	"sync"
+
+	"github.com/njucz/terraform-provider-azurerm-analysis/internal/extract"
 )
-
-var HttpActionMap = map[string]string{
-	"AsDelete":  "DELETE",
-	"AsGet":     "GET",
-	"AsHead":    "HEAD",
-	"AsMerge":   "MERGE",
-	"AsOptions": "OPTIONS",
-	"AsPatch":   "PATCH",
-	"AsPost":    "POST",
-	"AsPut":     "PUT",
-}
-
-var re = regexp.MustCompile(`/\{.*?\}`)
-
-func formatUrl(url string) string {
-	url = re.ReplaceAllString(url, "")
-	if !strings.HasSuffix(url, "/") {
-		url = url + "/"
-	}
-	return strings.ToUpper(url)
-}
-
-var urlUsage = map[string]struct{}{}
-var urlUsageMutex = sync.RWMutex{}
 
 type ClientInvoke struct {
 	TypeName  string
@@ -51,11 +27,14 @@ type SDKPackageInvoke struct {
 	ClientInvokes map[string]ClientInvoke
 }
 
-var myAnalyzer = &analysis.Analyzer{
-	Name:     "resourceUrlAnalyzer",
-	Doc:      "get all azure sdk urls invoked by azurerm provider",
-	Run:      run,
-	Requires: []*analysis.Analyzer{inspect.Analyzer},
+func main() {
+	myAnalyzer := &analysis.Analyzer{
+		Name:     "endpointExtractor",
+		Doc:      "extract all endpoints in azure go sdk invoked by azurerm provider",
+		Run:      run,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	}
+	singlechecker.Main(myAnalyzer)
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -150,8 +129,8 @@ func run(pass *analysis.Pass) (interface{}, error) {
 					}
 					FuncName := strings.TrimSuffix(be.Name.Name, "Preparer")
 					if typeInvoke.FuncNames[FuncName] || typeInvoke.FuncNames[FuncName+"Complete"] {
-						if apiVersion, url, action := walk(be.Body.List); apiVersion != "" && url != "" && action != "" {
-							fmt.Printf("%s %s %s\n", apiVersion, url, action)
+						if endpoint := extract.EndpointInfoFromGoSdkFunction(be.Body.List); endpoint != nil {
+							fmt.Println(endpoint.String())
 						}
 					}
 					return true
@@ -161,87 +140,4 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	}
 
 	return nil, nil
-}
-
-func walk(body []ast.Stmt) (string, string, string) {
-	httpActionPlusPath := make([]string, 0, len(HttpActionMap)+1)
-	for k := range HttpActionMap {
-		httpActionPlusPath = append(httpActionPlusPath, k)
-	}
-	httpActionPlusPath = append(httpActionPlusPath, "WithPathParameters", "WithPath")
-
-	var url, action, apiVersion string
-	for _, stmt := range body {
-		ast.Inspect(stmt, func(n ast.Node) bool {
-			if be, ok := n.(*ast.GenDecl); ok && be.Tok == token.CONST {
-				if constExpr, ok := be.Specs[0].(*ast.ValueSpec); ok {
-					if constExpr.Names[0].Name == "APIVersion" {
-						apiVersion = constExpr.Values[0].(*ast.BasicLit).Value
-						apiVersion = apiVersion[1 : len(apiVersion)-1]
-					}
-				}
-				return true
-			}
-
-			be, ok := n.(*ast.CallExpr)
-			if !ok {
-				return true
-			}
-			selectBe, ok := be.Fun.(*ast.SelectorExpr)
-			if !ok {
-				return true
-			}
-			if !foundInList(httpActionPlusPath, selectBe.Sel.Name) {
-				return true
-			}
-			xIdent, ok := selectBe.X.(*ast.Ident)
-			if !ok {
-				return true
-			}
-			if xIdent.Name != "autorest" {
-				return true
-			}
-			if selectBe.Sel.Name == "WithPathParameters" || selectBe.Sel.Name == "WithPath" {
-				if len(be.Args) == 0 {
-					return false
-				}
-				args0, ok := be.Args[0].(*ast.BasicLit)
-				if !ok {
-					return false
-				}
-				url = args0.Value[1 : len(args0.Value)-1]
-			} else {
-				action = HttpActionMap[selectBe.Sel.Name]
-			}
-			return false
-		})
-	}
-
-	url = formatUrl(url)
-	key := fmt.Sprintf("%s-%s", url, action)
-	urlUsageMutex.RLock()
-	_, ok := urlUsage[key]
-	urlUsageMutex.RUnlock()
-	if ok {
-		return "", "", ""
-	} else {
-		urlUsageMutex.Lock()
-		urlUsage[key] = struct{}{}
-		urlUsageMutex.Unlock()
-	}
-
-	return apiVersion, url, action
-}
-
-func foundInList(arr []string, ele string) bool {
-	for _, v := range arr {
-		if v == ele {
-			return true
-		}
-	}
-	return false
-}
-
-func main() {
-	singlechecker.Main(myAnalyzer)
 }
