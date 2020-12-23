@@ -21,7 +21,7 @@ func main() {
 
 	log.Println("starting cron job")
 	c := cron.New()
-	// every Sunday execute once
+	// execute every day
 	c.AddFunc("0 0 * * *", func() {
 		log.Println("cron job triggered")
 		if _, err := ser.OnlyOneRefresh(); err != nil {

@@ -12,7 +12,7 @@ type AzurermProviderUrlExtractor struct {
 }
 
 func (extractor *AzurermProviderUrlExtractor) ExtractUrl(ctx context.Context) (string, []common.Endpoint, error) {
-	cmd := exec.CommandContext(ctx, extractor.ExtractCmdPath, "./...")
+	cmd := exec.CommandContext(ctx, extractor.ExtractCmdPath, "-debug=p", "./...")
 	cmd.Dir = extractor.ProviderDir
 
 	outputBytes, err := cmd.Output()
